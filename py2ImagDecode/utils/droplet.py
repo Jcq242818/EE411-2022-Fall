@@ -41,12 +41,12 @@ class Droplet:
         if self.rs > 0:
             message = self.rs_obj.encode(message) #adding RS symbols to the message
         return message
-    
+
     def to_human_readable_DNA(self):
         return self.toDNA().replace('0','A').replace('1','C').replace('2','G').replace('3','T')
     def chunkNums(self):
         return self.num_chunks
-    
-        
+
+
 
 

@@ -28,7 +28,7 @@ import utils.scr_rept as sr
 
 class Aggressive:
     def __init__(self, g, file_in, times, min_coverage = 1):
-        
+
         self.entries = []
         self.glass = g
         self.file_in = file_in
@@ -100,7 +100,7 @@ class Aggressive:
             o.write(outstring)
         logging.debug("Results of decoding are at %s", outname)
         o.close()
-        
+
         md5_str = md5.new(outstring).hexdigest()
         logging.debug("Results of decoding are at %s with MD5: %s", outname, md5_str)
         self.md5_dict[md5_str].append(outname)
@@ -117,7 +117,7 @@ class Aggressive:
     def load_glass(self, name):
         with open(name, 'rb') as input:
             return pickle.load(input)
-        
+
     def reciever(self, lines, g):
 
         errors = 0
@@ -137,9 +137,9 @@ class Aggressive:
                 errors += 1
 
             if n_line % 100 == 0:
-                logging.info("After reading %d additional lines, %d chunks are done. So far: %d rejections %d barcodes", 
+                logging.info("After reading %d additional lines, %d chunks are done. So far: %d rejections %d barcodes",
                              n_line, g.chunksDone(), errors, g.len_seen_seed())
-            
+
             if g.isDone():
                 logging.debug("Done![don't get too excited...]")
                 break
@@ -148,7 +148,7 @@ class Aggressive:
              return None, errors, n_line
 
         return g.getString(), errors, n_line
-       
+
     def saveme(self, name):
         with open(name, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
@@ -156,11 +156,11 @@ class Aggressive:
 
 
 class Glass:
-    def __init__(self, num_chunks, out, header_size = 4, 
-                 rs = 0, c_dist = 0.1, delta = 0.05, 
-                flag_correct = True, gc = 0.2, max_homopolymer = 4, 
+    def __init__(self, num_chunks, out, header_size = 4,
+                 rs = 0, c_dist = 0.1, delta = 0.05,
+                flag_correct = True, gc = 0.2, max_homopolymer = 4,
                 max_hamming = 100, decode = True, chunk_size = 32, exDNA = False, np = False, truth = None):
-        
+
         self.entries = []
         self.droplets = set()
         self.num_chunks = num_chunks
@@ -182,11 +182,11 @@ class Glass:
         self.rs = rs
         self.correct = flag_correct
         self.seen_seeds = set()
-        
+
         if self.rs > 0:
             self.RSCodec = RSCodec(rs)
         else:
-            self.RSCodec = None 
+            self.RSCodec = None
 
     def add_dna(self, dna_string):
         #header_size is in bytes
@@ -209,8 +209,8 @@ class Glass:
                 #we will encode the data again to evaluate the correctness of the decoding
                 data_again = list(self.RSCodec.encode(data_corrected)) #list is to convert byte array to int
                 #measuring hamming distance between raw input and expected raw input
-                if numpy.count_nonzero(data != list(data_again)) > self.max_hamming: 
-                    #too many errors to correct in decoding                    
+                if numpy.count_nonzero(data != list(data_again)) > self.max_hamming:
+                    #too many errors to correct in decoding
                     return -1, None
             else: #we don't want to evaluate the error correcting code (e.g. speed)
                 data_corrected  = data[0:len(data) - self.rs] #just parse out the error correcting part
@@ -268,29 +268,29 @@ class Glass:
     def addDroplet(self, droplet):
         self.droplets.add(droplet)
         for chunk_num in droplet.num_chunks:
-            self.chunk_to_droplets[chunk_num].add(droplet) #we document for each chunk all connected droplets        
-        
+            self.chunk_to_droplets[chunk_num].add(droplet) #we document for each chunk all connected droplets
+
         self.updateEntry(droplet) #one round of message passing
 
-        
+
     def updateEntry(self, droplet):
 
         #removing solved segments from droplets
 
         for chunk_num in (droplet.num_chunks & self.done_segments):
             #if self.chunks[chunk_num] is not None:
-                #we solved already this input segment. 
-                
+                #we solved already this input segment.
+
             droplet.data = list(map(operator.xor, droplet.data, self.chunks[chunk_num]))
             #subtract (ie. xor) the value of the solved segment from the droplet.
             droplet.num_chunks.remove(chunk_num)
             #cut the edge between droplet and input segment.
             self.chunk_to_droplets[chunk_num].discard(droplet)
-            #cut the edge between the input segment to the droplet               
+            #cut the edge between the input segment to the droplet
 
         #solving segments when the droplet have exactly 1 segment
         if len(droplet.num_chunks) == 1: #the droplet has only one input segment
-            lone_chunk = droplet.num_chunks.pop() 
+            lone_chunk = droplet.num_chunks.pop()
 
             self.chunks[lone_chunk] = droplet.data #assign the droplet value to the input segment (=entry[0][0])
 
@@ -299,7 +299,7 @@ class Glass:
                 self.check_truth(droplet, lone_chunk)
             self.droplets.discard(droplet) #cut the edge between the droplet and input segment
             self.chunk_to_droplets[lone_chunk].discard(droplet) #cut the edge between the input segment and the droplet
-            
+
             #update other droplets
             for other_droplet in self.chunk_to_droplets[lone_chunk].copy():
                 self.updateEntry(other_droplet)
@@ -329,7 +329,7 @@ class Glass:
         else:
 
             return 1
-        
+
     def save(self):
         '''name = self.out + '.glass.tmp'
         with open(name, 'wb') as output:
@@ -338,12 +338,12 @@ class Glass:
         pass
     def add_seed(self, seed):
         self.seen_seeds.add(seed)
-        
+
     def len_seen_seed(self):
         return len(self.seen_seeds)
     def isDone(self):
         if self.num_chunks - len(self.done_segments) > 0:
-            return None 
+            return None
         return True
     def chunksDone(self):
         return len(self.done_segments)
@@ -354,9 +354,9 @@ class Glass:
 
 
 class Decode():
-    def __init__(self, file_in, out = None, chunk_num = 128, header_size = 4, rs = 0, delta = 0.05, 
-                 c_dist = 0.1, fasta = False, no_correction = False, debug_barcodes = None, 
-                 gc = 0.5, max_homopolymer = 4, mock = False, max_hamming = 100, max_line = None, 
+    def __init__(self, file_in, out = None, chunk_num = 128, header_size = 4, rs = 0, delta = 0.05,
+                 c_dist = 0.1, fasta = False, no_correction = False, debug_barcodes = None,
+                 gc = 0.5, max_homopolymer = 4, mock = False, max_hamming = 100, max_line = None,
                  expand_nt = False, size = 32, rand_numpy = False, truth = None, aggressive = None):
         '''
         file_in: file to decode
@@ -418,9 +418,9 @@ class Decode():
             self.aggressive = Aggressive(g = g, file_in = f, times = aggressive)
         else:
             self.aggressive = None
-            
-    
-    
+
+
+
     def _load_barcodes(self):
         valid_barcodes = dict()
         try:
@@ -448,16 +448,16 @@ class Decode():
         ### End of aggressive mode
 
     def _link_glass(self):
-        return Glass(self.chunk_num, header_size = self.header_size, rs = self.rs, 
-                     c_dist = self.c_dist, delta = self.delta, flag_correct = not (self.no_correction), 
-                     gc = self.gc, max_homopolymer = self.max_homopolymer, max_hamming = self.max_hamming, 
-                     decode = not (self.mock), exDNA = self.expand_nt, chunk_size = self.size, 
+        return Glass(self.chunk_num, header_size = self.header_size, rs = self.rs,
+                     c_dist = self.c_dist, delta = self.delta, flag_correct = not (self.no_correction),
+                     gc = self.gc, max_homopolymer = self.max_homopolymer, max_hamming = self.max_hamming,
+                     decode = not (self.mock), exDNA = self.expand_nt, chunk_size = self.size,
                      np = self.rand_numpy, truth = self.truth, out = self.out)
     def _read_file(self):
         if self.file_in == '-':
             f = sys.stdin
-        else:    
-            try: 
+        else:
+            try:
                 f = open(self.file_in, 'r')
             except:
                 logging.error("%s file not found", self.file_in)
@@ -471,9 +471,9 @@ class Decode():
         seen_seeds = defaultdict(int)
 
         while True:
-            try:     
+            try:
                 dna = f.readline().rstrip('\n')
-                
+
                 if len(dna) == 0:
                     logging.info("Finished reading input file!")
                     break
@@ -505,10 +505,10 @@ class Decode():
                     else:
                         seen_seeds[dna] += 1
                 else:
-                    seen_seeds[seed] += 1       
+                    seen_seeds[seed] += 1
 
             if line % 1000 == 0:
-                logging.info("After reading %d lines, %d chunks are done. So far: %d rejections (%f) %d barcodes", 
+                logging.info("After reading %d lines, %d chunks are done. So far: %d rejections (%f) %d barcodes",
                              line, glass.chunksDone(), errors, errors/(line+0.0), glass.len_seen_seed())
 
             if line == self.max_line:
@@ -516,7 +516,7 @@ class Decode():
                 break
 
             if glass.isDone():
-                logging.info("After reading %d lines, %d chunks are done. So far: %d rejections (%f) %d barcodes", 
+                logging.info("After reading %d lines, %d chunks are done. So far: %d rejections (%f) %d barcodes",
                              line, glass.chunksDone(), errors, errors/(line+0.0), glass.len_seen_seed())
                 logging.info("Done!")
                 break

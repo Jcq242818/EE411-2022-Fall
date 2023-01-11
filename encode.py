@@ -25,7 +25,7 @@ class LFSR():
 
     def lfsr32p(self):
         #this function returns a hard coded polynomial (0b100000000000000000000000011000101).
-        #The polynomial corresponds to 1 + x^25 + x^26 + x^30 + x^32, which is known 
+        #The polynomial corresponds to 1 + x^25 + x^26 + x^30 + x^32, which is known
         #to repeat only after 32^2-1 tries. Don't change unless you know what you are doing.
         return 0b100000000000000000000000011000101
 
@@ -40,7 +40,7 @@ class LFSR():
 class DNAFountain():
 
     def __init__(self, file_in, file_size, chunk_size, alpha, max_repeat,
-            stop = None,rs = 0, c_dist = 0.1, delta = 0.5, 
+            stop = None,rs = 0, c_dist = 0.1, delta = 0.5,
             np = False,max_homopolymer = 3,gc = 0.05):
 
         #alpha is the redundency level
@@ -64,7 +64,7 @@ class DNAFountain():
 
         #things related to random mnumber generator
         self.lfsr = LFSR().lfsr_s_p() #starting an lfsr with a certain state and a polynomial for 32bits.
-        self.lfsr_l = len('{:b}'.format(LFSR().lfsr32p())) - 1 #calculate the length of lsfr in bits 
+        self.lfsr_l = len('{:b}'.format(LFSR().lfsr32p())) - 1 #calculate the length of lsfr in bits
         self.seed = next(self.lfsr)
 
 
@@ -107,16 +107,18 @@ class DNAFountain():
         #creating a droplet.
         data = None
         d, num_chunks = self._rand_chunk_nums() #creating a random list of segments.
+        # print(d,num_chunks)
         for num in num_chunks: #iterating over each segment
+            print(num)
             if data is None: #first round. data payload is empty.
                 data = self.file_in[num] #just copy the segment to the payload.
             else: #more rounds. Starting xoring the new segments with the payload.
                 data = list(map(operator.xor, data, self.file_in[num]))
         self.tries += 1 #upadte counter.
-        
+
         return Droplet(data = data, seed = self.seed, rs = self.rs,
                     rs_obj = self.rs_obj, num_chunks = num_chunks, degree = d)
-    
+
     def screen(self, droplet):
         if sr.screen_repeat(droplet, self.max_homopolymer, self.gc):
         #if self.screen_obj.screen(droplet.toDNA(), self.oligo_l):
@@ -129,7 +131,7 @@ class DNAFountain():
 
 
 class Encode():
-    def __init__(self, file_in, out = None, size = 128, max_homopolymer = 4, gc = 0.2, 
+    def __init__(self, file_in, out = None, size = 128, max_homopolymer = 4, gc = 0.2,
                  rs = 0, delta = 0.05, c_dist = 0.1, stop = None, alpha = 0.07, no_fasta = False, rand_numpy = False):
         '''file_in: file to encode,
         out: File with DNA oligos,
@@ -145,7 +147,7 @@ class Encode():
         rand_numpy: Uses numpy random generator. Faster but not compatible with older versions, type = bure'''
 
         logging.basicConfig(level=logging.DEBUG)
-        
+
         self.file_in = file_in
         if out:
             self.out = out
@@ -176,15 +178,15 @@ class Encode():
 
         f = DNAFountain(file_in = f_in, file_size = file_size, chunk_size = self.size, max_repeat = self.max_homopolymer,
                         rs = self.rs, max_homopolymer = self.max_homopolymer,
-                        gc = self.gc, delta = self.delta, c_dist = self.c_dist, 
+                        gc = self.gc, delta = self.delta, c_dist = self.c_dist,
                         np = self.rand_numpy, alpha = self.alpha, stop = self.stop)
 
-        logging.info("Upper bounds on packets for decoding is %d (x%f)  with %f probability\n", int(json.loads(f.PRNG.debug())['K_prime']), 
+        logging.info("Upper bounds on packets for decoding is %d (x%f)  with %f probability\n", int(json.loads(f.PRNG.debug())['K_prime']),
                                                                    json.loads(f.PRNG.debug())['Z'],
                                                                    json.loads(f.PRNG.debug())['delta'])
         if (self.out == '-'):
             out = sys.stdout
-        else: 
+        else:
             out = open(self.out, 'w')
             pbar = tqdm.tqdm(total= f.final, desc = "Valid oligos")
 
@@ -211,12 +213,11 @@ class Encode():
         logging.info("Finished. Generated %d packets out of %d tries (%.3f)", f.good, f.tries, (f.good+0.0)/f.tries)
         logging.info("Out file's name is '%s'", self.out)
         out.close()
-    
+
 if __name__ == '__main__':
     f = 'mengnalisha.tar.gz'
     o = 'mengnalisha.tar.gz.dna'
     Encode(file_in=f,out=o,size=32,rs=2,max_homopolymer=3,gc=0.05,delta=0.001,c_dist=0.025,stop=2000,no_fasta=True).main()
-	
-	
-	
-	
+
+
+
